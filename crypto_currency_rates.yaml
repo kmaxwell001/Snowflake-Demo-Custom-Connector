@@ -1,0 +1,303 @@
+spec:
+  type: Spec
+  connection_specification:
+    type: object
+    $schema: http://json-schema.org/draft-07/schema#
+    required:
+      - api_key
+    properties:
+      api_key:
+        type: string
+        order: 0
+        title: API Key
+        airbyte_secret: true
+    additionalProperties: true
+type: DeclarativeSource
+check:
+  type: CheckStream
+  stream_names:
+    - All Coins
+streams:
+  - name: All Coins
+    type: DeclarativeStream
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        type: NoPagination
+      requester:
+        path: /coins
+        type: HttpRequester
+        url_base: https://openapiv1.coinstats.app
+        http_method: GET
+        authenticator:
+          type: ApiKeyAuthenticator
+          api_token: '{{ config[''api_key''] }}'
+          inject_into:
+            type: RequestOption
+            field_name: X-API-KEY
+            inject_into: header
+        request_headers: {}
+        request_body_json: {}
+        request_parameters: {}
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - result
+      partition_router: []
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/schema#
+        properties:
+          meta:
+            type: object
+            properties:
+              page:
+                type: number
+              limit:
+                type: number
+              itemCount:
+                type: number
+              pageCount:
+                type: number
+              hasNextPage:
+                type: boolean
+              hasPreviousPage:
+                type: boolean
+          result:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                icon:
+                  type: string
+                name:
+                  type: string
+                rank:
+                  type: number
+                price:
+                  type: number
+                symbol:
+                  type: string
+                volume:
+                  type: number
+                decimals:
+                  type: number
+                priceBtc:
+                  type: number
+                explorers:
+                  type: array
+                  items:
+                    type: string
+                marketCap:
+                  type: number
+                redditUrl:
+                  type: string
+                twitterUrl:
+                  type: string
+                websiteUrl:
+                  type: string
+                totalSupply:
+                  type: number
+                priceChange1d:
+                  type: number
+                priceChange1h:
+                  type: number
+                priceChange1w:
+                  type: number
+                availableSupply:
+                  type: number
+                contractAddress:
+                  type: string
+  - name: Coin Details
+    type: DeclarativeStream
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        type: NoPagination
+      requester:
+        path: /coins/{{ stream_partition.stream_id }}
+        type: HttpRequester
+        url_base: https://openapiv1.coinstats.app
+        http_method: GET
+        authenticator:
+          type: ApiKeyAuthenticator
+          api_token: '{{ config[''api_key''] }}'
+          inject_into:
+            type: RequestOption
+            field_name: X-API-KEY
+            inject_into: header
+        request_headers: {}
+        request_body_json: {}
+        request_parameters: {}
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path: []
+      partition_router:
+        - type: SubstreamPartitionRouter
+          parent_stream_configs:
+            - type: ParentStreamConfig
+              stream:
+                name: All Coins
+                type: DeclarativeStream
+                retriever:
+                  type: SimpleRetriever
+                  paginator:
+                    type: NoPagination
+                  requester:
+                    path: /coins
+                    type: HttpRequester
+                    url_base: https://openapiv1.coinstats.app
+                    http_method: GET
+                    authenticator:
+                      type: ApiKeyAuthenticator
+                      api_token: '{{ config[''api_key''] }}'
+                      inject_into:
+                        type: RequestOption
+                        field_name: X-API-KEY
+                        inject_into: header
+                    request_headers: {}
+                    request_body_json: {}
+                    request_parameters: {}
+                  record_selector:
+                    type: RecordSelector
+                    extractor:
+                      type: DpathExtractor
+                      field_path:
+                        - result
+                  partition_router: []
+                primary_key:
+                  - id
+                schema_loader:
+                  type: InlineSchemaLoader
+                  schema:
+                    type: object
+                    $schema: http://json-schema.org/schema#
+                    properties:
+                      meta:
+                        type: object
+                        properties:
+                          page:
+                            type: number
+                          limit:
+                            type: number
+                          itemCount:
+                            type: number
+                          pageCount:
+                            type: number
+                          hasNextPage:
+                            type: boolean
+                          hasPreviousPage:
+                            type: boolean
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            icon:
+                              type: string
+                            name:
+                              type: string
+                            rank:
+                              type: number
+                            price:
+                              type: number
+                            symbol:
+                              type: string
+                            volume:
+                              type: number
+                            decimals:
+                              type: number
+                            priceBtc:
+                              type: number
+                            explorers:
+                              type: array
+                              items:
+                                type: string
+                            marketCap:
+                              type: number
+                            redditUrl:
+                              type: string
+                            twitterUrl:
+                              type: string
+                            websiteUrl:
+                              type: string
+                            totalSupply:
+                              type: number
+                            priceChange1d:
+                              type: number
+                            priceChange1h:
+                              type: number
+                            priceChange1w:
+                              type: number
+                            availableSupply:
+                              type: number
+                            contractAddress:
+                              type: string
+              parent_key: id
+              partition_field: stream_id
+    primary_key: []
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/schema#
+        properties:
+          id:
+            type: string
+          icon:
+            type: string
+          name:
+            type: string
+          rank:
+            type: number
+          price:
+            type: number
+          symbol:
+            type: string
+          volume:
+            type: number
+          decimals:
+            type: number
+          priceBtc:
+            type: number
+          explorers:
+            type: array
+            items:
+              type: string
+          marketCap:
+            type: number
+          redditUrl:
+            type: string
+          twitterUrl:
+            type: string
+          websiteUrl:
+            type: string
+          totalSupply:
+            type: number
+          priceChange1d:
+            type: number
+          priceChange1h:
+            type: number
+          priceChange1w:
+            type: number
+          availableSupply:
+            type: number
+          contractAddress:
+            type: string
+version: 0.57.0
+metadata:
+  autoImportSchema:
+    All Coins: true
+    Coin Details: true
